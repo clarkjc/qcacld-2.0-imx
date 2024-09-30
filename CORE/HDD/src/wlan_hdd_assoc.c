@@ -2074,7 +2074,7 @@ static void hdd_send_roamed_ind(struct net_device *dev,
 {
 	struct cfg80211_roam_info info = {0};
 
-	info.bss = bss;
+	info.links[0].bss = bss;
 	info.req_ie = req_ie;
 	info.req_ie_len = req_ie_len;
 	info.resp_ie = resp_ie;
@@ -2660,7 +2660,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                     hddLog(LOG1, "%s ft_carrier_on is %d, sending connect "
                                  "indication", __FUNCTION__, ft_carrier_on);
 
-                    if(wdev->ssid_len != 0)
+                    if(wdev->u.client.ssid_len != 0)
 			    hdd_connect_result(dev, pRoamInfo->bssid, pRoamInfo,
 					       pFTAssocReq, assocReqlen,
 					       pFTAssocRsp, assocRsplen,
@@ -2697,7 +2697,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                                roamResult, roamStatus);
 
                         /* inform connect result to nl80211 */
-                        if(wdev->ssid_len != 0)
+                        if(wdev->u.client.ssid_len != 0)
 				hdd_connect_result(dev, pRoamInfo->bssid, pRoamInfo,
 					reqRsnIe, reqRsnLength,
 					rspRsnIe, rspRsnLength,
@@ -3114,10 +3114,10 @@ static void hdd_RoamIbssIndicationHandler( hdd_adapter_t *pAdapter,
 
             if (chan_no <= 14)
                 freq = ieee80211_channel_to_frequency(chan_no,
-                                                      IEEE80211_BAND_2GHZ);
+                                                      NL80211_BAND_2GHZ);
             else
                 freq = ieee80211_channel_to_frequency(chan_no,
-                                                      IEEE80211_BAND_5GHZ);
+                                                      NL80211_BAND_5GHZ);
 
             chan = ieee80211_get_channel(pAdapter->wdev.wiphy, freq);
 
@@ -6322,7 +6322,7 @@ static int __iw_get_ap_address(struct net_device *dev,
     }
     else
     {
-        memset(wrqu->ap_addr.sa_data,0,sizeof(wrqu->ap_addr.sa_data));
+        memset(wrqu->ap_addr.sa_data,0,sizeof(wrqu->ap_addr.sa_data_min));
     }
     EXIT();
     return 0;

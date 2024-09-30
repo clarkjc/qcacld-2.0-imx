@@ -237,7 +237,8 @@ static int epping_set_mac_address(struct net_device *dev, void *addr)
    struct sockaddr *psta_mac_addr = addr;
    vos_mem_copy(&pAdapter->macAddressCurrent,
                 psta_mac_addr->sa_data, ETH_ALEN);
-   vos_mem_copy(dev->dev_addr, psta_mac_addr->sa_data, ETH_ALEN);
+   //vos_mem_copy(dev->dev_addr, psta_mac_addr->sa_data, ETH_ALEN);
+   dev_addr_set(dev, (const u8 *) psta_mac_addr->sa_data);
    return 0;
 }
 
@@ -382,7 +383,8 @@ epping_adapter_t *epping_add_adapter(epping_context_t *pEpping_ctx,
    pAdapter->dev = dev;
    pAdapter->pEpping_ctx = pEpping_ctx;
    pAdapter->device_mode = device_mode; /* station, SAP, etc */
-   vos_mem_copy(dev->dev_addr, (void *)macAddr, sizeof(tSirMacAddr));
+   //vos_mem_copy(dev->dev_addr, (void *)macAddr, sizeof(tSirMacAddr));
+   dev_addr_set(dev, (const u8 *)macAddr);
    vos_mem_copy(pAdapter->macAddressCurrent.bytes,
                 macAddr, sizeof(tSirMacAddr));
    adf_os_spinlock_init(&pAdapter->data_lock);

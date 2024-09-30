@@ -54,6 +54,9 @@
 #include "regdomain_common.h"
 #include "vos_cnss.h"
 
+extern int regulatory_hint_user(const char *alpha2,
+			 enum nl80211_user_reg_hint_type user_reg_hint_type);
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3,9,0)) && !defined(WITH_BACKPORTS)
 #define IEEE80211_CHAN_NO_80MHZ		1<<7
 #endif
@@ -1677,7 +1680,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
 
         INIT_COMPLETION(pHddCtx->reg_init);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)) || defined(WITH_BACKPORTS)
-        regulatory_hint_user(country_code, NL80211_USER_REG_HINT_USER);
+        //regulatory_hint_user(country_code, NL80211_USER_REG_HINT_USER);
 #else
         regulatory_hint_user(country_code);
 #endif

@@ -1611,7 +1611,7 @@ static int __is_driver_dfs_capable(struct wiphy *wiphy,
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
     defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
-    dfs_capability = !!(wiphy->flags & WIPHY_FLAG_DFS_OFFLOAD);
+    dfs_capability = wiphy_ext_feature_isset(wiphy, NL80211_EXT_FEATURE_DFS_OFFLOAD);
 #endif
 
     temp_skbuff = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(u32) +
@@ -5142,7 +5142,7 @@ static int hdd_extscan_passpoint_fill_network_list(
 	struct nlattr *network[QCA_WLAN_VENDOR_ATTR_PNO_MAX + 1];
 	struct nlattr *networks;
 	int rem1;
-	size_t len;
+	ssize_t len;
 	uint8_t index;
 	uint32_t expected_networks;
 
@@ -5184,7 +5184,7 @@ static int hdd_extscan_passpoint_fill_network_list(
 			hddLog(LOGE, FL("attr realm failed"));
 			return -EINVAL;
 		}
-		len = nla_strlcpy(req_msg->networks[index].realm,
+		len = nla_strscpy(req_msg->networks[index].realm,
 				  network[PARAM_REALM],
 				  SIR_PASSPOINT_REALM_LEN);
 		/* Don't send partial realm to firmware */
@@ -16609,7 +16609,7 @@ int wlan_hdd_cfg80211_init(struct device *dev,
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0)) || \
     defined (DFS_MASTER_OFFLOAD_IND_SUPPORT) || defined(WITH_BACKPORTS)
     if (pCfg->enableDFSMasterCap) {
-        wiphy->flags |= WIPHY_FLAG_DFS_OFFLOAD;
+        wiphy_ext_feature_set(wiphy, NL80211_EXT_FEATURE_DFS_OFFLOAD);
     }
 #endif
 
@@ -17366,7 +17366,7 @@ int wlan_hdd_cfg80211_update_apies(hdd_adapter_t* pHostapdAdapter)
                           WLAN_EID_INTERWORKING);
 
     wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
-                          WLAN_EID_VHT_TX_POWER_ENVELOPE);
+                          WLAN_EID_TX_POWER_ENVELOPE);
 
     if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags))
         wlan_hdd_add_extra_ie(pHostapdAdapter, genie, &total_ielen,
@@ -19292,7 +19292,8 @@ static int wlan_hdd_cfg80211_del_beacon(struct wiphy *wiphy,
  * Return: zero for success non-zero for failure
  */
 static int wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy,
-					struct net_device *dev)
+					struct net_device *dev,
+					unsigned int link_id)
 {
 	int ret;
 
@@ -20026,10 +20027,10 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
                 /* To meet Android requirements create a randomized
                    MAC address of the form 02:1A:11:Fx:xx:xx */
                 get_random_bytes(&ndev->dev_addr[3], 3);
-                ndev->dev_addr[0] = 0x02;
-                ndev->dev_addr[1] = 0x1A;
-                ndev->dev_addr[2] = 0x11;
-                ndev->dev_addr[3] |= 0xF0;
+                ((unsigned char *) ndev->dev_addr)[0] = 0x02;
+                ((unsigned char *) ndev->dev_addr)[1] = 0x1A;
+                ((unsigned char *) ndev->dev_addr)[2] = 0x11;
+                ((unsigned char *) ndev->dev_addr)[3] |= 0xF0;
                 memcpy(pAdapter->macAddressCurrent.bytes, ndev->dev_addr,
                        VOS_MAC_ADDR_SIZE);
                 pr_info("wlan: Generated HotSpot BSSID "MAC_ADDRESS_STR"\n",
@@ -20642,12 +20643,12 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
                 vos_mem_copy(StaParams.extn_capability, params->ext_capab,
                              params->ext_capab_len);
 
-            if (NULL != params->ht_capa) {
+            if (NULL != params->link_sta_params.ht_capa) {
                 StaParams.htcap_present = 1;
-                vos_mem_copy(&StaParams.HTCap, params->ht_capa, sizeof(tSirHTCap));
+                vos_mem_copy(&StaParams.HTCap, params->link_sta_params.ht_capa, sizeof(tSirHTCap));
             }
 
-            StaParams.supported_rates_len = params->supported_rates_len;
+            StaParams.supported_rates_len = params->link_sta_params.supported_rates_len;
 
             /*
              * Note : The Maximum sizeof supported_rates sent by the Supplicant
@@ -20663,7 +20664,7 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
 
             if (0 != StaParams.supported_rates_len) {
                 int i = 0;
-                vos_mem_copy(StaParams.supported_rates, params->supported_rates,
+                vos_mem_copy(StaParams.supported_rates, params->link_sta_params.supported_rates,
                              StaParams.supported_rates_len);
                 VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                            "Supported Rates with Length %d", StaParams.supported_rates_len);
@@ -20672,9 +20673,9 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
                                "[%d]: %0x", i, StaParams.supported_rates[i]);
             }
 
-            if (NULL != params->vht_capa) {
+            if (NULL != params->link_sta_params.vht_capa) {
                 StaParams.vhtcap_present = 1;
-                vos_mem_copy(&StaParams.VHTCap, params->vht_capa, sizeof(tSirVHTCap));
+                vos_mem_copy(&StaParams.VHTCap, params->link_sta_params.vht_capa, sizeof(tSirVHTCap));
             }
 
             if (0 != params->ext_capab_len ) {
@@ -20689,7 +20690,7 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
             }
 
             if (pHddCtx->cfg_ini->fEnableTDLSWmmMode &&
-                (params->ht_capa || params->vht_capa ||
+                (params->link_sta_params.ht_capa || params->link_sta_params.vht_capa ||
                 (params->sta_flags_set & BIT(NL80211_STA_FLAG_WME))))
                 is_qos_wmm_sta = true;
 
@@ -21114,6 +21115,7 @@ static int __wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
 
 static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                                       struct net_device *ndev,
+                                      int link_id,
                                       u8 key_index, bool pairwise,
                                       const u8 *mac_addr,
                                       struct key_params *params
@@ -21208,6 +21210,7 @@ static int __wlan_hdd_cfg80211_get_key(
 static int wlan_hdd_cfg80211_get_key(
                         struct wiphy *wiphy,
                         struct net_device *ndev,
+                        int link_id,
                         u8 key_index, bool pairwise,
                         const u8 *mac_addr, void *cookie,
                         void (*callback)(void *cookie, struct key_params*)
@@ -21352,6 +21355,7 @@ static int __wlan_hdd_cfg80211_del_key(struct wiphy *wiphy,
  */
 static int wlan_hdd_cfg80211_del_key(struct wiphy *wiphy,
 					struct net_device *dev,
+					int link_id,
 					u8 key_index,
 					bool pairwise, const u8 *mac_addr)
 {
@@ -21487,6 +21491,7 @@ static int __wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
 
 static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
                                               struct net_device *ndev,
+                                              int link_id,
                                               u8 key_index,
                                               bool unicast, bool multicast)
 {
@@ -24899,7 +24904,11 @@ static int __wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
                             req->bssid, req->ssid,
                             req->ssid_len);
                 if (bss) {
-                    cfg80211_assoc_timeout(ndev, bss);
+                    struct cfg80211_assoc_failure af_data;
+		    memset(&af_data, 0, sizeof(af_data));
+		    af_data.bss[0] = bss;
+		    af_data.timeout = true;
+                    cfg80211_assoc_failure(ndev, &af_data);
                     return -ETIMEDOUT;
                 }
             }
@@ -27761,6 +27770,7 @@ static int __wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
  */
 static int wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
 					   struct net_device *netdev,
+					   int link_id,
 					   u8 key_index)
 {
 	int ret;
@@ -29461,7 +29471,8 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)) || defined(WITH_BACKPORTS)
 static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 					struct net_device *dev,
-					const u8 *peer, u8 action_code,
+					const u8 *peer, int link_id,
+					u8 action_code,
 					u8 dialog_token, u16 status_code,
 					u32 peer_capability, bool initiator,
 					const u8 *buf, size_t len)
@@ -30040,7 +30051,7 @@ int wlan_hdd_cfg80211_send_tdls_discover_req(struct wiphy *wiphy,
                             WLAN_TDLS_DISCOVERY_REQUEST, 1, 0, 0, NULL, 0);
 #else
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)) || defined(WITH_BACKPORTS)
-    return wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer,
+    return wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer, -1,
                             WLAN_TDLS_DISCOVERY_REQUEST, 1, 0, 0, 0, NULL, 0);
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3,16,0))
     return wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer,
@@ -32238,7 +32249,7 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
 {
 	hdd_context_t *pHddCtx  = (hdd_context_t *)ctx;
 	struct sk_buff *skb;
-	struct timespec ts;
+	struct timespec64 ts;
 	int flags = vos_get_gfp_flags();
 	struct hdd_ext_scan_context *context;
 
@@ -32275,7 +32286,7 @@ wlan_hdd_cfg80211_extscan_full_scan_result_event(void *ctx,
 	/* Android does not want the time stamp from the frame.
 	   Instead it wants a monotonic increasing value since boot */
 	vos_get_monotonic_boottime_ts(&ts);
-	pData->ap.ts = ((u64)ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
+	pData->ap.ts = (ts.tv_sec * 1000000) + (ts.tv_nsec / 1000);
 	hddLog(LOG1, "AP Info: Timestamp %llu Ssid: %s "
 				"Bssid (" MAC_ADDRESS_STR ") "
 				"Channel %u "

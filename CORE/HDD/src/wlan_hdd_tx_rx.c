@@ -1387,6 +1387,47 @@ static inline void hdd_tsf_timestamp_rx(hdd_context_t *hdd_ctx,
 }
 #endif
 
+static bool cfg80211_is_gratuitous_arp_unsolicited_na(struct sk_buff *skb)
+{
+	struct qca_arp_eth_header {
+		struct arphdr hdr;
+		u8 ar_sha[ETH_ALEN];
+		u8 ar_sip[4];
+		u8 ar_tha[ETH_ALEN];
+		u8 ar_tip[4];
+	} __packed;
+        const struct qca_arp_eth_header *arp;
+        struct ethhdr *eth;
+        struct ipv6hdr *ipv6;
+        struct icmp6hdr *icmpv6;
+
+	eth = (struct ethhdr *)skb->data;
+	switch (ntohs(eth->h_proto)) {
+	case ETH_P_ARP:
+		arp = (void *)(skb->data + sizeof(struct ethhdr));
+		if (arp->hdr.ar_op == htons(ARPOP_REPLY) ||
+		    arp->hdr.ar_op == htons(ARPOP_REQUEST)) {
+			if (!memcmp(arp->ar_sip, arp->ar_tip, 4))
+				return true;
+		}
+		break;
+	case ETH_P_IPV6:
+		ipv6 = (void *)(skb->data + sizeof(struct ethhdr));
+		icmpv6 = (void *)(skb->data + sizeof(struct ethhdr) +
+				  sizeof(struct ipv6hdr));
+		if (NDISC_NEIGHBOUR_ADVERTISEMENT == icmpv6->icmp6_type) {
+			if (!memcmp(&ipv6->saddr, &ipv6->daddr,
+				    sizeof(struct in6_addr)))
+				return true;
+		}
+		break;
+	default:
+		break;
+	}
+
+	return false;
+}
+
 /**============================================================================
   @brief hdd_rx_packet_cbk() - Receive callback registered with TL.
   TL will call this to notify the HDD when one or more packets were

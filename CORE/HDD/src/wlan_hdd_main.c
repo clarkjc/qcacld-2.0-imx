@@ -10639,7 +10639,8 @@ static int __hdd_set_mac_address(struct net_device *dev, void *addr)
 		return ret;
 
 	memcpy(&pAdapter->macAddressCurrent, psta_mac_addr->sa_data, ETH_ALEN);
-	memcpy(dev->dev_addr, psta_mac_addr->sa_data, ETH_ALEN);
+	//memcpy(dev->dev_addr, psta_mac_addr->sa_data, ETH_ALEN);
+	dev_addr_set(dev, (const u8 *) psta_mac_addr->sa_data);
 
 	EXIT();
 	return 0;
@@ -11034,7 +11035,8 @@ static hdd_adapter_t* hdd_alloc_station_adapter(hdd_context_t *pHddCtx,
       //Init the net_device structure
       strlcpy(pWlanDev->name, name, IFNAMSIZ);
 
-      vos_mem_copy(pWlanDev->dev_addr, (void *)macAddr, sizeof(tSirMacAddr));
+      //vos_mem_copy(pWlanDev->dev_addr, (void *)macAddr, sizeof(tSirMacAddr));
+      dev_addr_set(pWlanDev, (const u8 *)macAddr);
       vos_mem_copy( pAdapter->macAddressCurrent.bytes, macAddr, sizeof(tSirMacAddr));
       pWlanDev->watchdog_timeo = HDD_TX_TIMEOUT;
       /*
@@ -11105,8 +11107,9 @@ static hdd_adapter_t *hdd_alloc_monitor_adapter(hdd_context_t *pHddCtx,
 	   /* Init the net_device structure */
 	   strlcpy(pwlan_dev->name, name, IFNAMSIZ);
 
-	   vos_mem_copy(pwlan_dev->dev_addr,
-			(void *)macAddr, sizeof(tSirMacAddr));
+	   //vos_mem_copy(pwlan_dev->dev_addr,
+			//(void *)macAddr, sizeof(tSirMacAddr));
+	   dev_addr_set(pwlan_dev, (const u8 *)macAddr);
 	   vos_mem_copy(pAdapter->macAddressCurrent.bytes,
 			macAddr, sizeof(tSirMacAddr));
 	   pwlan_dev->watchdog_timeo = HDD_TX_TIMEOUT;
@@ -15425,7 +15428,7 @@ void hdd_cnss_request_bus_bandwidth(hdd_context_t *pHddCtx,
                 hddLog(LOGE, FL("low bandwidth set rx affinity fail"));
         } else {
             if (!pHddCtx->hbw_requested) {
-                vos_request_pm_qos_type(PM_QOS_CPU_DMA_LATENCY,
+                vos_request_pm_qos_type(PM_QOS_MAX,
                                       DISABLE_KRAIT_IDLE_PS_VAL);
                 pHddCtx->hbw_requested = true;
             }
@@ -17870,7 +17873,7 @@ static int hdd_driver_init( void)
     * load for reducing interrupt latency.
     */
 
-   vos_request_pm_qos_type(PM_QOS_CPU_DMA_LATENCY, DISABLE_KRAIT_IDLE_PS_VAL);
+   vos_request_pm_qos_type(PM_QOS_MAX, DISABLE_KRAIT_IDLE_PS_VAL);
 
    vos_ssr_protect_init();
 
@@ -20514,6 +20517,7 @@ module_exit(hdd_module_exit);
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Qualcomm Atheros, Inc.");
 MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");
+MODULE_IMPORT_NS(CRYPTO_INTERNAL);
 
 #if !defined(QCA_WIFI_FTM)
 static const struct kernel_param_ops con_mode_ops = {

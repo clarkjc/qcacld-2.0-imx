@@ -37,6 +37,7 @@
 #include <net/ieee80211_radiotap.h>
 #include "adf_trace.h"
 #include "vos_trace.h"
+#include <osapi_linux.h>
 
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
 #include <net/cnss_prealloc.h>

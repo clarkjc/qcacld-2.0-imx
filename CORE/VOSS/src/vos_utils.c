@@ -64,6 +64,7 @@
 #include <linux/random.h>
 #if(LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
 #include <crypto/skcipher.h>
+#include <crypto/internal/cipher.h>
 #else
 #include <linux/crypto.h>
 #endif
@@ -646,9 +647,9 @@ struct hmac_sha1_result {
     int err;
 };
 
-static void hmac_sha1_complete(struct crypto_async_request *req, int err)
+static void hmac_sha1_complete(void *data, int err)
 {
-    struct hmac_sha1_result *r = req->data;
+    struct hmac_sha1_result *r = (struct hmac_sha1_result *)data;
     if (err == -EINPROGRESS)
         return;
     r->err = err;
@@ -819,9 +820,9 @@ struct hmac_md5_result {
     int err;
 };
 
-static void hmac_md5_complete(struct crypto_async_request *req, int err)
+static void hmac_md5_complete(void *data, int err)
 {
-    struct hmac_md5_result *r = req->data;
+    struct hmac_md5_result *r = (struct hmac_md5_result *)data;
     if (err == -EINPROGRESS)
             return;
     r->err = err;

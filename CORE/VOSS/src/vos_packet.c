@@ -367,9 +367,9 @@ void vos_pkt_trace_dump_slot_buf(int slot)
 	struct rtc_time tm;
 	unsigned long local_time;
 
-	local_time = (u32)(trace_buffer[slot].event_sec_time -
-		(sys_tz.tz_minuteswest * 60));
-	rtc_time_to_tm(local_time, &tm);
+	local_time = trace_buffer[slot].event_sec_time -
+		(sys_tz.tz_minuteswest * 60);
+	rtc_time64_to_tm(local_time, &tm);
 	VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
 		"%5d : [%02d:%02d:%02d.%06lu] : %s",
 		trace_buffer[slot].order,

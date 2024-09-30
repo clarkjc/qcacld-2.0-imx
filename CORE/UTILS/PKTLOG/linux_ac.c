@@ -87,10 +87,10 @@ static int pktlog_release(struct inode *i, struct file *f);
 static ssize_t pktlog_read(struct file *file, char *buf, size_t nbytes,
 			   loff_t * ppos);
 
-static struct file_operations pktlog_fops = {
-	open:pktlog_open,
-	release:pktlog_release,
-	read:pktlog_read,
+static struct proc_ops pktlog_fops = {
+	proc_open:pktlog_open,
+	proc_release:pktlog_release,
+	proc_read:pktlog_read,
 };
 
 /*
@@ -362,12 +362,12 @@ static int pktlog_sysctl_register(struct ol_softc *scn)
 	set_ctl_name(0, CTL_AUTO);
 	pl_info_lnx->sysctls[0].procname = PKTLOG_PROC_DIR;
 	pl_info_lnx->sysctls[0].mode = PKTLOG_PROCSYS_DIR_PERM;
-	pl_info_lnx->sysctls[0].child = &pl_info_lnx->sysctls[2];
+	//pl_info_lnx->sysctls[0].child = &pl_info_lnx->sysctls[2];
 	/* [1] is NULL terminator */
 	set_ctl_name(2, CTL_AUTO);
 	pl_info_lnx->sysctls[2].procname = proc_name;
 	pl_info_lnx->sysctls[2].mode = PKTLOG_PROCSYS_DIR_PERM;
-	pl_info_lnx->sysctls[2].child = &pl_info_lnx->sysctls[4];
+	//pl_info_lnx->sysctls[2].child = &pl_info_lnx->sysctls[4];
 	/* [3] is NULL terminator */
 	set_ctl_name(4, CTL_AUTO);
 	pl_info_lnx->sysctls[4].procname = "enable";
@@ -437,8 +437,10 @@ static int pktlog_sysctl_register(struct ol_softc *scn)
 	/* and register everything */
 	/* register_sysctl_table changed from 2.6.21 onwards */
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,20))
+	char sysctl_path[256];
+	snprintf(sysctl_path, 256, "%s/%s", PKTLOG_PROC_DIR, proc_name);
 	pl_info_lnx->sysctl_header =
-			register_sysctl_table(pl_info_lnx->sysctls);
+			register_sysctl_sz(sysctl_path, pl_info_lnx->sysctls + 4, 9);
 #else
 	pl_info_lnx->sysctl_header =
 			register_sysctl_table(pl_info_lnx->sysctls, 1);
@@ -768,7 +770,7 @@ __pktlog_read(struct file *file, char *buf, size_t nbytes, loff_t *ppos)
 	int fold_offset, ppos_data, cur_rd_offset;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
 	struct ath_pktlog_info *pl_info = (struct ath_pktlog_info *)
-					  PDE_DATA(file->f_path.dentry->d_inode);
+					  pde_data(file->f_path.dentry->d_inode);
 #else
 	struct proc_dir_entry *proc_entry = PDE(file->f_dentry->d_inode);
 	struct ath_pktlog_info *pl_info = (struct ath_pktlog_info *)
@@ -903,7 +905,7 @@ pktlog_read(struct file *file, char *buf, size_t nbytes, loff_t *ppos)
 	size_t ret_val = 0;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
 	struct ath_pktlog_info *pl_info = (struct ath_pktlog_info *)
-					  PDE_DATA(file->f_path.dentry->d_inode);
+					  pde_data(file->f_path.dentry->d_inode);
 #else
 	struct proc_dir_entry *proc_entry = PDE(file->f_dentry->d_inode);
 	struct ath_pktlog_info *pl_info = (struct ath_pktlog_info *)

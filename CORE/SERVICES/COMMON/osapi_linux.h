@@ -89,6 +89,15 @@
 #define A_MEMSET(addr, value, size)     memset((addr), (value), (size))
 #define A_MEMCMP(addr1, addr2, len)     memcmp((addr1), (addr2), (len))
 
+static inline int netif_rx_ni(struct sk_buff *skb)
+{
+	int err;
+	preempt_disable();
+	err = netif_rx(skb);
+	preempt_enable();
+	return err;
+}
+
 #ifdef AR6K_ALLOC_DEBUG
 #define a_meminfo_add(p, s)  __a_meminfo_add(p, s, __func__, __LINE)
 #define a_mem_trace(ptr) __a_mem_trace(ptr, __func__, __LINE__)
@@ -480,5 +489,7 @@ typedef struct ieee80211_cb wbuf_context;
 #endif
 
 #endif /* __KERNEL__ */
+
+#define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
 
 #endif /* _OSAPI_LINUX_H_ */

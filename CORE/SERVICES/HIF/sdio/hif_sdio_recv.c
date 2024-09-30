@@ -1028,7 +1028,7 @@ int rx_completion_task(void *param)
         }
         spin_unlock_irqrestore(&device->pRecvTask->rx_alloc_lock, flags);
     }
-    complete_and_exit(&device->pRecvTask->rx_completion_exit, 0);
+    complete(&device->pRecvTask->rx_completion_exit);
     return 0;
 }
 #endif

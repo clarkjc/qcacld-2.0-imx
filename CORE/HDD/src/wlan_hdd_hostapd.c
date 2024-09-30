@@ -1050,7 +1050,8 @@ static int __hdd_hostapd_set_mac_address(struct net_device *dev, void *addr)
    if (0 != ret)
        return ret;
 
-   memcpy(dev->dev_addr, psta_mac_addr->sa_data, ETH_ALEN);
+   //memcpy(dev->dev_addr, psta_mac_addr->sa_data, ETH_ALEN);
+   dev_addr_set(dev, (const u8 *) psta_mac_addr->sa_data);
    EXIT();
    return 0;
 }
@@ -1550,7 +1551,7 @@ VOS_STATUS hdd_chan_change_notify(hdd_adapter_t *hostapd_adapter,
 	    (phy_mode == eCSR_DOT11_MODE_11ac_ONLY))
 		hdd_update_chandef(hostapd_adapter, &chandef, cb_mode);
 
-	cfg80211_ch_switch_notify(dev, &chandef);
+	cfg80211_ch_switch_notify(dev, &chandef, 0, 0);
 
 	return VOS_STATUS_SUCCESS;
 }
@@ -7946,7 +7947,8 @@ hdd_adapter_t* hdd_wlan_create_ap_dev(hdd_context_t *pHddCtx,
         pWlanHostapdDev->mtu = HDD_DEFAULT_MTU;
         pWlanHostapdDev->tx_queue_len = HDD_NETDEV_TX_QUEUE_LEN;
 
-        vos_mem_copy(pWlanHostapdDev->dev_addr, (void *)macAddr,sizeof(tSirMacAddr));
+        //vos_mem_copy(pWlanHostapdDev->dev_addr, (void *)macAddr,sizeof(tSirMacAddr));
+        dev_addr_set(pWlanHostapdDev, (const u8 *)macAddr);
         vos_mem_copy(pHostapdAdapter->macAddressCurrent.bytes, (void *)macAddr, sizeof(tSirMacAddr));
 
         pHostapdAdapter->offloads_configured = FALSE;

@@ -114,7 +114,7 @@ static inline  a_status_t __adf_os_init_bh(adf_os_handle_t  hdl,
                                      adf_os_defer_fn_t  func,
                                      void               *arg)
 {
-     tasklet_init(bh, (__adf_os_bh_fn_t)func, (unsigned long)arg);
+     tasklet_init(bh, (void *)func, (unsigned long)arg);
 
      return A_STATUS_OK;
 }
